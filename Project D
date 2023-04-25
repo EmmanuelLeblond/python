@@ -1,0 +1,282 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Mon Apr  3 09:40:34 2023
+
+@author: emmanuelleblond
+"""
+#-----------------------------------------------------------------------#
+# SCRIPT: projectd_template.py #
+# PURPOSE: Template for project D #
+# #
+#-----------------------------------------------------------------------#
+#----------#
+# Notes: #
+#----------#
+#----------------------#
+# Required libraries #
+#----------------------#
+
+import csv
+import math
+import numpy as np
+import matplotlib.pyplot as plt
+#------------------#
+# Main function #
+#------------------#
+def main():
+    filename = './NOAA_data.csv'
+    # Run the read_data function
+    data = read_data(filename=filename)
+    # Find the list of unique site codes
+    usites = unique_sites(sitecode=data[0])
+    print("Unique site codes")
+    print(usites)
+    # Calculate the data counts
+    counts = data_counts(filename)
+    # Calculate data statistics
+    summarystats = data_stats(filename)
+#----------#
+# PART A #
+#----------#
+# Purpose: read in the data and clean the data
+def read_data(filename):
+    sitecodes = {'wisconsin':'LEF', 'wisc':'LEF', 'waco':'WKT',
+                 'maryland':'TMD', 'sutro':'STR', 'oklahoma':'SGP'}
+    sitecode = []
+    finalsitecode=[]
+    yr = []
+    doy = []
+    obs = []
+    with open(filename, 'r') as file:
+        next(file)
+        file_reader=csv.reader(file)
+        for row in file_reader:
+            sitecode.append(row[0])
+            yr.append(int(row[1]))
+            doy.append(int(row[2]))
+            obs.append(float(row[3]))
+        for i in sitecode:
+            if i in sitecodes:
+                translated_code = sitecodes[i]
+                finalsitecode.append(translated_code)
+            else:
+                finalsitecode.append(i)
+    return [finalsitecode, yr, doy, obs]
+
+    pass
+#----------#
+# PART B #
+#----------#
+# Purpose: Create a unique list of sites and sort it
+def unique_sites(sitecode):
+    return sorted(list(set(sitecode)))
+
+    pass
+#----------#
+# PART C #
+#----------#
+def data_counts(filename):
+    data = read_data(filename)
+    sitecounts = {}
+    for site in set(data[0]):
+        sitecounts[site] = data[0].count(site)
+    sorted_counts = [sitecounts[site] for site in unique_sites(data[0])]
+    print(f"Site {max(sitecounts, key=sitecounts.get)} has the largest number of observations with {max(sitecounts.values())} observations")
+    print(f"Site {min(sitecounts, key=sitecounts.get)} has the smallest number of observations with {min(sitecounts.values())} observations")
+    return sorted_counts
+    pass
+#----------#
+# PART D #
+#----------#
+# Calculate statistics on each site and write the data to a file as a visually- pleasing table.
+def data_stats(filename):
+    # Read in NOAA data and clean it
+    data = read_data(filename)
+    
+    # Get unique site codes in alphabetical order
+    site_codes = unique_sites(data[0])
+    
+    # Initialize lists to store summary statistics
+    min_list = []
+    max_list = []
+    mean_list = []
+    
+    # Loop through each site and calculate statistics
+    for site in site_codes:
+        site_data = [data[3][i] for i in range(len(data[0])) if data[0][i] == site]
+        site_mean = round(sum(site_data) / len(site_data), 2)
+        site_min = min(site_data)
+        site_max = max(site_data)
+        min_list.append(site_min)
+        max_list.append(site_max)
+        mean_list.append(site_mean)
+    
+    # Write summary table to file
+    with open('data_summary.txt', 'w') as f:
+        # Write header
+        f.write('| site | mean    | min     | max     |\n')
+        # Write separator
+        f.write('|------|---------|---------|---------|\n')
+        # Write data for each site
+        for i in range(len(site_codes)):
+            f.write('| {:<4s} | {:>7.2f} | {:>7.2f} | {:>7.2f} |\n'.format(site_codes[i], mean_list[i], min_list[i], max_list[i]))
+    
+    # Return calculated statistics as a compound list
+    return [min_list, max_list, mean_list]
+
+    pass
+#----------#
+# PART E #
+#----------#
+def summarizedata(filename):
+    # Purpose:
+    # Create a plot of the CO2 data as a time series
+    # Plot a histogram of the data
+    # Read in data from the Harvard Forest
+    data = np.genfromtxt(filename, delimiter=',', skip_header=1)
+    # Create a time series plot of the data
+    plt.figure(figsize=(10, 5))
+    plt.plot(data[:, 0] + (data[:, 2] - 1) / 365, data[:, 3], '.', markersize=1)
+    plt.xlabel('Year')
+    plt.ylabel('CO2 Flux')
+    plt.title('Harvard Forest CO2 Flux Time Series')
+    # Display the plot
+    plt.show()
+    # Plot a histogram of the data
+    plt.figure(figsize=(10, 5))
+    plt.hist(data[:, 3], bins=20, density=True)
+    plt.xlabel('CO2 Flux')
+    plt.ylabel('Density')
+    plt.title('Harvard Forest CO2 Flux Histogram')
+    # Display the plot
+    plt.show()
+#---------------------------#
+# PART F #
+#---------------------------#
+def seasonalcycle(filename):
+    # Purpose:
+    # Find the average flux by month (averaged over all years)
+    # Plot the average monthly flux to visualize the seasonal cycle
+    # Read in the data from the Harvard Forest
+    data = np.genfromtxt(filename, delimiter=",", skip_header=1)
+    co2_flux = data[:, 3]
+
+    # Calculate the average by month
+    # Loop over each month
+    monthly_mean = []
+    for month in range(1, 13):
+        month_indices = np.where(data[:, 1] == month)[0]
+        monthly_mean.append(np.mean(co2_flux[month_indices]))
+
+    # Plot the average flux by month
+    fig, ax = plt.subplots()
+    ax.plot(range(1, 13), monthly_mean)
+    ax.set_xticks(range(1, 13))
+    ax.set_xlabel('Month')
+    ax.set_ylabel('CO2 Flux (micromol/m^2/s)')
+    ax.set_title('Harvard Forest Seasonal Cycle')
+    
+    # Return the result
+    return monthly_mean
+    pass
+#---------------------------#
+# PART G #
+#---------------------------#
+
+def HFregression(filename, dummy=None):
+    # Load the data from the file
+    data = np.genfromtxt(filename, delimiter=',', skip_header=1)
+
+    # Extract the predictor variables (X) and the response variable (y)
+    X = data[:, :-1]
+    y = data[:, -1]
+
+    # Add an intercept term to X
+    X = np.hstack((np.ones((X.shape[0], 1)), X))
+
+    # Compute the coefficients using the normal equations
+    beta = np.linalg.inv(X.T @ X) @ X.T @ y
+
+    # Compute the model estimate
+    yhat = X @ beta
+
+    # Compute the correlation coefficient
+    r = np.corrcoef(y, yhat)[0, 1]
+
+    # Create a timeseries plot of the actual data and the model estimate
+    plt.plot(data[:, 0], y, label='Actual')
+    plt.plot(data[:, 0], yhat, label='Model estimate')
+    plt.legend()
+    plt.xlabel('Year')
+    plt.ylabel('CO2 Flux')
+    plt.title('Actual vs. Model Estimate')
+
+    # Calculate the contribution of each predictor variable to the model estimate
+    contrib = X * beta
+
+    # Create a timeseries plot of the contribution of each predictor variable
+    plt.figure()
+    plt.plot(data[:, 0], contrib[:, 0], label='Intercept')
+    plt.plot(data[:, 0], contrib[:, 1], label='temp')
+    plt.plot(data[:, 0], contrib[:, 2], label='PAR')
+    plt.plot(data[:, 0], contrib[:, 3], label='VPD')
+    plt.plot(data[:, 0], contrib[:, 4], label='Soil Water')
+    plt.legend()
+    plt.xlabel('Year')
+    plt.ylabel('Contribution')
+    plt.title('Contribution of Predictor Variables')
+
+    # Load the data for 2023 and compute the expected CO2 fluxes
+    data_2023 = np.genfromtxt('harvard_forest_2023.csv', delimiter=',', skip_header=1)
+    X_2023 = data_2023[:, 1:]
+    X_2023 = np.hstack((np.ones((X_2023.shape[0], 1)), X_2023))
+    yhat_2023 = X_2023 @ beta
+
+    # Calculate the amount by which the instrument was de-calibrated
+    diff = data_2023[:, 0] - yhat_2023.mean()
+    print(f'Eddy flux instrument was de-calibrated by {-diff.mean():.2f} units.')
+
+    # Create a timeseries plot of the expected CO2 fluxes for 2023
+    plt.figure()
+    plt.plot(data_2023[:, 0], yhat_2023)
+    plt.xlabel('Year')
+    plt.ylabel('CO2 Flux')
+    plt.title('Expected CO2 Fluxes for 2023')
+
+
+
+    # Purpose:
+    # Create a regression model for CO2 fluxes
+    # Visualize the outputs of the model
+    # Read in the data from the Harvard Forest
+    '''your code'''
+    # Create the X matrix for the regression
+    '''your code'''
+    # Estimate the regression coefficients
+    '''your code'''
+    # Create the model estimate
+    '''your code'''
+    # Calculate the correlation coefficient
+    '''your code'''
+    # Plot the model estimate
+    '''your code'''
+    # Add the correlation coefficient to the plot
+    # Create a plot of the model components
+    '''your code'''
+    # Load 2023 data and create X matrix for regression
+    # Create the model estimate for 2023 data
+    # Plot the model estimate for 2023 data
+    # Display the plot
+    plt.show()
+    # Return the regression coefficients
+    pass
+#----------------#
+# Run the code #
+#----------------#
+if __name__ == "__main__": main()
+#-----------------------------------------------------------------------#
+# END OF SCRIPT #
+#-----------------------------------------------------------------------#
+
+    
